@@ -2,7 +2,8 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-
+from sklearn import linear_model
+import scipy.stats as stats
 def analisy_univariate(data, features, histoplot=True, barplot=False, mean=None, text_y=0.5, outliers=False, kde=False, color='skyblue', figsize=(24, 12)):
     num_features = len(features)
     num_rows = num_features // 3 + (num_features % 3 > 0)
@@ -210,3 +211,62 @@ def wo_discretize_continuos(df, var_discretize, target):
     df['total_iv'] = df['iv'].sum()
     
     return df
+
+
+
+
+class LogisticRegression:
+    """
+    Uma classe personalizada para Regressão Logística que calcula p-values.
+    
+    Esta classe envolve o LogisticRegression do sklearn e adiciona o cálculo de p-values
+    usando a matriz de informação de Fisher e o método de Cramer-Rao.
+    """
+    def __init__(self, *args, **kwargs):
+        """
+        Inicializa o modelo de regressão logística.
+        
+        Args:
+            *args, **kwargs: Argumentos passados para LogisticRegression do sklearn
+        """
+        self.model = linear_model.LogisticRegression(*args, **kwargs)
+
+    def fit(self, X, y):
+        """
+        Ajusta o modelo aos dados e calcula os p-values.
+        
+        Args:
+            X: Features de treinamento
+            y: Target de treinamento
+            
+        O método:
+        1. Ajusta o modelo de regressão logística
+        2. Calcula a matriz de informação de Fisher:
+           - Usa a função de decisão do modelo para obter as probabilidades
+           - Calcula o denominador usando cosh (função hiperbólica)
+           - Calcula a matriz de informação usando produto matricial
+        3. Obtém os erros padrão usando Cramer-Rao
+        4. Calcula z-scores e p-values usando distribuição normal
+        """
+        # Ajusta o modelo base
+        self.model.fit(X, y)
+
+        # Calcula o denominador para a matriz de informação de Fisher
+        denom = (2.0 * (1.0 + np.cosh(self.model.decision_function(X))))
+        denom = np.tile(denom, (X.shape[1], 1))
+        
+        # Calcula a matriz de informação de Fisher
+        f_ij = np.dot((X/denom).T, X)
+        
+        # Obtém a matriz de Cramer-Rao e os erros padrão
+        Cramer_Rao = np.linalg.inv(f_ij)
+        sigma_estimates = np.sqrt(np.diagonal(Cramer_Rao))
+        
+        # Calcula z-scores e p-values
+        z_scores = self.model.coef_[0] / sigma_estimates
+        p_values = [stats.norm.sf(abs(x)) * 2 for x in z_scores]
+
+        # Armazena os resultados
+        self.coef_ = self.model.coef_
+        self.intercept_ = self.model.intercept_
+        self.p_values_ = p_values
