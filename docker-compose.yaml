@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.jupyter
     container_name: jupyter
     ports:
-      - '8888:8888'
+      - '8889:8888'  # Changed from 8888
     volumes:
       - './notebooks:/home/jovyan/work'
     networks:
@@ -24,7 +24,7 @@ services:
       context: ./docker
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "5001:5000"  # Changed from 5000
     environment:
       - AWS_ACCESS_KEY_ID=mlflow
       - AWS_SECRET_ACCESS_KEY=password
@@ -39,8 +39,8 @@ services:
   minio:
     image: 'minio/minio:latest'
     ports:
-      - '9001:9000'
-      - '8901:8900'
+      - '9005:9000'  # Changed from 9001/9002
+      - '8905:8900'  # Changed from 8901
     environment:
       MINIO_ROOT_USER: mlflow
       MINIO_ROOT_PASSWORD: password
@@ -61,7 +61,7 @@ services:
   pgsql:
     image: 'postgres:14'
     ports:
-      - '5433:5432'
+      - '5434:5432'  # Changed from 5433
     environment:
       PGPASSWORD: '${DB_PASSWORD:-secret}'
       POSTGRES_DB: '${DB_DATABASE:-mlflow}'
@@ -89,7 +89,7 @@ services:
       dockerfile: Dockerfile
     container_name: api_model
     ports:
-      - '8000:8000'
+      - '8001:8000'  # Changed from 8000
     volumes:
       - './src:/app'
     networks:
