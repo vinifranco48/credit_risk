@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.jupyter
     container_name: jupyter
     ports:
-      - '8889:8888'  # Changed from 8888
+      - '8889:8888'  # Alterado de 8888
     volumes:
       - './notebooks:/home/jovyan/work'
     networks:
@@ -24,14 +24,14 @@ services:
       context: ./docker
       dockerfile: Dockerfile
     ports:
-      - "5001:5000"  # Changed from 5000
+      - "5001:5000"  # Alterado de 5000
     environment:
       - AWS_ACCESS_KEY_ID=mlflow
       - AWS_SECRET_ACCESS_KEY=password
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
     networks:
       - mlflow
-    entrypoint: mlflow server --backend-store-uri postgresql+psycopg2://mlflow:secret@pgsql/mlflow --default-artifact-root s3://mlflow/ --artifacts-destination s3://mlflow/ -h 0.0.0.0
+    entrypoint: mlflow server --backend-store-uri postgresql+psycopg2://mlflow:secret@pgsql/mlflow --default-artifact-root s3://mlflow/ --host 0.0.0.0 --port 5000
     depends_on:
       - pgsql
       - minio
@@ -39,8 +39,8 @@ services:
   minio:
     image: 'minio/minio:latest' 
     ports:
-      - '9005:9000'  # Changed from 9001/9002
-      - '8905:8900'  # Changed from 8901
+      - '9005:9000'  # Alterado de 9001/9002
+      - '8905:8900'  # Alterado de 8901
     environment:
       MINIO_ROOT_USER: mlflow
       MINIO_ROOT_PASSWORD: password
@@ -61,12 +61,11 @@ services:
   pgsql:
     image: 'postgres:14'
     ports:
-      - '5434:5432'  # Changed from 5433
+      - '5434:5432'  # Alterado de 5433
     environment:
-      PGPASSWORD: '${DB_PASSWORD:-secret}'
-      POSTGRES_DB: '${DB_DATABASE:-mlflow}'
-      POSTGRES_USER: '${DB_USERNAME:-mlflow}'
-      POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
+      POSTGRES_DB: 'mlflow'
+      POSTGRES_USER: 'mlflow'
+      POSTGRES_PASSWORD: 'secret'
     volumes:
       - 'mlflow-pgsql:/var/lib/postgresql/data'
     networks:
@@ -77,9 +76,9 @@ services:
         - pg_isready
         - '-q'
         - '-d'
-        - '${DB_DATABASE:-mlflow}'
+        - 'mlflow'
         - '-U'
-        - '${DB_USERNAME:-mlflow}'
+        - 'mlflow'
       retries: 3
       timeout: 5s
 
@@ -89,7 +88,7 @@ services:
       dockerfile: Dockerfile
     container_name: api_model
     ports:
-      - '8001:8000'  # Changed from 8000
+      - '8001:8000'  # Alterado de 8000
     volumes:
       - './src:/app'
     networks:
