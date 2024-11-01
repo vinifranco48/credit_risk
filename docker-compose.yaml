@@ -37,7 +37,7 @@ services:
       - minio
 
   minio:
-    image: 'minio/minio:latest'
+    image: 'minio/minio:latest' 
     ports:
       - '9005:9000'  # Changed from 9001/9002
       - '8905:8900'  # Changed from 8901
