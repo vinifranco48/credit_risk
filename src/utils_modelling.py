@@ -4,6 +4,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn import linear_model
 import scipy.stats as stats
+from sklearn.base import BaseEstimator, TransformerMixin
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import OneHotEncoder
+
+
 def analisy_univariate(data, features, histoplot=True, barplot=False, mean=None, text_y=0.5, outliers=False, kde=False, color='skyblue', figsize=(24, 12)):
     num_features = len(features)
     num_rows = num_features // 3 + (num_features % 3 > 0)
@@ -249,4 +255,210 @@ class LogisticRegressionPvalues:
         self.intercept_ = self.model.intercept_
         self.p_values_ = p_values
         
-     
+
+
+
+class CatImputer(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        self.impute_mapping = {  # Corrigido o nome do atributo
+            'mths_since_last_delinq': 'never_delinquent',
+            'tot_cur_bal': 'missing',
+        }
+        self.missing = 'nan'
+
+    def fit(self, x, y=None):
+        return self
+
+    def transform(self, x):
+        x_copy = x.copy()  # Corrigido para chamar o método copy()
+
+        for feature, impute_value in self.impute_mapping.items():  # Corrigido o nome das variáveis
+            x_copy[feature] = x_copy[feature].replace(self.missing, impute_value)  # Corrigido o nome das variáveis
+
+        return x_copy
+
+
+class CatCombiner(BaseEstimator, TransformerMixin):  # Corrigido o nome da classe e herança
+    def __init__(self, debug=False):
+        self.category_mapping = {
+            'grade': [],
+            'home_ownership': [['OTHER', 'NONE', 'RENT', 'ANY']],  # Corrigido o nome do campo
+            'purpose': [
+                ['small_business', 'educational', 'renewable_energy', 'moving'],
+                ['other', 'house', 'medical', 'vacation'],
+                ['wedding', 'home_improvement', 'major_purchase', 'car'],
+            ],
+            'addr_state': [
+                ['NE', 'IA', 'NV', 'HI', 'FL'],
+                ['AL', 'NM', 'NJ'],
+                ['OK', 'MO', 'MD', 'NC'],
+                ['AR', 'TN', 'MI', 'UT', 'VA', 'LA', 'PA', 'AZ', 'OH', 'RI', 'KY', 'DE', 'IN'],
+                ['MA', 'SD', 'GA', 'MN', 'WI', 'WA', 'OR', 'IL', 'CT'],
+                ['MS', 'MT', 'SC', 'VT', 'KS', 'CO', 'AK', 'NH', 'WV', 'WY', 'ID', 'DC', 'ME'],
+            ],
+            'initial_list_status': [],
+            'verification_status': [],
+            'sub_grade': [
+                ['G1', 'F5', 'G5', 'G3', 'G2', 'F4', 'F3', 'G4', 'F2'],
+                ['E5', 'F1', 'E4', 'E3', 'E2'],
+                ['E1', 'D5', 'D4'],
+                ['D3', 'D2', 'D1'],
+                ['C5', 'C4', 'C3'],
+                ['C2', 'C1', 'B5'],
+                ['B4', 'B3'],
+                ['B2', 'B1'],
+                ['A5', 'A4'],
+                ['A3', 'A2', 'A1']
+            ],
+            'term': [],
+            'emp_length': [
+                [1, 3],
+                [4, 6],
+                [7, 9]
+            ],
+            'inq_last_6mths': [
+                [4, 33]
+            ],
+        }
+        self.debug = debug
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, x):
+        x_copy = x.copy()
+
+        for feature, category_groups in self.category_mapping.items():
+            for category_group in category_groups:
+                if all(isinstance(element, str) for element in category_group):
+                    bundled_category = '_'.join(category_group)
+                    to_replace = category_group
+                else:
+                    bundled_category = f'{category_group[0]}-{category_group[-1]}'  # Corrigido o acesso ao índice
+                    to_replace = range(category_group[0], category_group[-1] + 1)  # Corrigido o acesso ao índice
+
+                x_copy[feature] = x_copy[feature].replace(to_replace, bundled_category)
+
+            x_copy[feature] = x_copy[feature].astype(str)
+
+            if self.debug:
+                print(f'Categorias de pacotes de {feature}')  # Corrigido nome da variável
+                print(f'Categorias originais {x[feature].unique().tolist()}')
+                print(f'Novas categorias: {x_copy[feature].unique().tolist()}')
+
+        return x_copy
+
+
+class DiscretizerCombiner(BaseEstimator, TransformerMixin):
+    def __init__(self, debug=False):  # Corrigido o nome do parâmetro
+        self.category_mapping = {
+            'int_rate': [7, 10, 12, 14, 16, 18, 22],
+            'loan_amnt': [7400, 14300, 21200, 28100],
+            'dti': [4, 8, 12, 16, 20, 28],
+            'annual_inc': [20000, 40000, 60000, 75000, 90000, 120000, 150000],
+            'mths_since_earliest_cr_line': [151, 226, 276, 401],
+            'revol_bal': [2000, 6000, 12000, 22000, 30000, 36000, 40000],
+            'tot_cur_bal': [80000, 140000, 200000, 240000, 280000, 340000, 400000],
+            'mths_since_last_delinq': [4, 7, 22, 37, 74],
+            'open_acc': [6, 12, 21],
+            'total_acc': [8, 15, 24, 36],
+        }
+        self.debug = debug
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X_copy = X.copy()
+
+        for feature, category_bins in self.category_mapping.items():
+            bins = [-float('inf')] + category_bins + [float('inf')]
+            labels = []
+
+            first_bin_label = f'<={category_bins[0] / 1000:.1f}K' if category_bins[0] >= 1000 else f'<={category_bins[0]:.1f}'
+            labels.append(first_bin_label)
+
+            for i in range(1, len(category_bins)):
+                lower_bound = category_bins[i-1] / 1000 if category_bins[i-1] >= 1000 else category_bins[i-1]
+                upper_bound = category_bins[i] / 1000 if category_bins[i] >= 1000 else category_bins[i]
+                bin_label = f'{lower_bound:.1f}K-{upper_bound:.1f}K' if category_bins[i] >= 1000 else f'{lower_bound:.1f}-{upper_bound:.1f}'
+                labels.append(bin_label)
+
+            last_bin_label = f'>{category_bins[-1] / 1000:.1f}K' if category_bins[-1] >= 1000 else f'>{category_bins[-1]:.1f}'
+            labels.append(last_bin_label)
+
+            X_copy[feature] = pd.cut(X_copy[feature], bins=bins, labels=labels, include_lowest=False, right=True)
+            X_copy[feature] = X_copy[feature].astype(str)
+
+            if self.debug:
+                print(f'Discretize and bundle categories of {feature}.')
+                print(f'Original range: {round(X[feature].min())} to {round(X[feature].max())}.')
+                print(f'Discretized and bundled categories: {X_copy[feature].unique().tolist()}.')
+                print()
+
+        return X_copy
+
+
+class CatOneHotEncoder(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        # Assegure-se de que há uma categoria de referência para cada feature possível
+        self.reference_categories = {
+            'loan_amnt': '>28.1K',
+            'term': '60',
+            'int_rate': '>22.0',
+            'grade': 'G',
+            'sub_grade': 'G1_F5_G5_G3_G2_F4_F3_G4_F2',
+            'emp_length': '0',
+            'home_ownership': 'OTHER_NONE_RENT_ANY',
+            'annual_inc': '<=20.0K',
+            'verification_status': 'Verified',
+            'purpose': 'small_business_educational_renewable_energy_moving',
+            'addr_state': 'NE_IA_NV_HI_FL',
+            'dti': '>28.0',
+            'inq_last_6mths': '4-33',
+            'open_acc': '<=4.0',
+            'total_acc': '<=6.0',
+            'revol_bal': '<=2.0K',
+            'mths_since_last_delinq': '<=8.0',
+            'initial_list_status': 'f',
+            'tot_cur_bal': 'missing',
+            'mths_since_earliest_cr_line': '<=151.0'
+        }
+        self.encoder = None
+
+    def fit(self, X, y=None):
+        # Criar lista de categorias para drop baseada nas colunas presentes
+        drop_categories = []
+        for column in X.columns:
+            ref_cat = self.reference_categories.get(column)
+            if ref_cat is not None and ref_cat in X[column].unique():
+                drop_categories.append(ref_cat)
+            else:
+                # Se não houver categoria de referência, use a primeira categoria
+                first_cat = X[column].unique()[0]
+                drop_categories.append(first_cat)
+
+        # Configurar o OneHotEncoder
+        self.encoder = OneHotEncoder(
+            drop=drop_categories,
+            sparse_output=False,
+            dtype=np.int8,
+            handle_unknown='ignore'
+        )
+        self.encoder.fit(X)
+        return self
+
+    def transform(self, X):
+        if self.encoder is None:
+            raise RuntimeError("The encoder must be fitted before calling transform.")
+        X_one_hot = self.encoder.transform(X)
+        one_hot_df = pd.DataFrame(
+            X_one_hot, 
+            columns=self.encoder.get_feature_names_out(),
+            index=X.index
+        )
+        return one_hot_df
+
+    
+                
+            
