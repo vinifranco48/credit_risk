@@ -246,7 +246,7 @@ class LogisticRegressionPvalues:
         denom = np.tile(denom,(X.shape[1],1)).T
         F_ij = np.dot((X / denom).T,X) # Fisher Information Matrix
         Cramer_Rao = np.linalg.inv(F_ij) # Inverse Information Matrix
-        sigma_estimates = np.sqrt(np.diagonal(Cramer_Rao))
+        sigma_estimates = np.sqrt(np.diagonal(Cramer_Rao))   
         z_scores = self.model.coef_[0] / sigma_estimates # z-score for each model coefficient
         p_values = [stats.norm.sf(abs(x)) * 2 for x in z_scores] # two tailed test for p-values
 
