@@ -54,8 +54,12 @@ def upload_to_minio(bucket_name, object_name, data):
 
 @lru_cache
 def get_pipeline():
-    return Pipeline(steps=[
-        ('discretizer_combiner', DiscretizerCombiner()
-         'cat_combiner'
-         )
-    ])
+    return Pipeline(
+            steps=[
+                ('discretizer_combiner', DiscretizerCombiner()),
+                ('cat_combiner', CatCombiner()),
+                ('cat_imputer', CatImputer()),
+                ('cat_one_hot_encoder', CatOneHotEncoder())
+            ]
+) 
+
