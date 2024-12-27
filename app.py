@@ -1,42 +1,43 @@
-import mlflow
 import logging
+import os
 import datetime
+import time
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import pandas as pd
 import boto3
-import os
-import json
+import mlflow
+import joblib
 import uvicorn
 from functools import lru_cache
-import time
 from typing import Optional
-import joblib
-from sklearn.pipeline import Pipeline
 import numpy as np
-from src.utils_modelling import CatImputer, CatCombiner, DiscretizerCombiner,CatOneHotEncoder
+from sklearn.pipeline import Pipeline
+from src.utils_modelling import CatCombiner, CatImputer, DiscretizerCombiner, CatOneHotEncoder
+import json
 
 # Configuração de logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)  # Configura log detalhado
 logger = logging.getLogger(__name__)
 
-# Configuração MLflow
+# Configuração de ambiente
 os.environ['AWS_ACCESS_KEY_ID'] = 'mlflow'
 os.environ['AWS_SECRET_ACCESS_KEY'] = 'password'
 os.environ['MLFLOW_S3_ENDPOINT_URL'] = 'http://localhost:9005'
+
 mlflow.set_tracking_uri("http://localhost:5001")
 
 # Configuração MinIO
 s3_client = boto3.client(
     's3',
-    endpoint_url=os.getenv('MLFLOW_S3_ENDPOINT_URL', 'http://localhost:9005'),
-    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID', 'mlflow'),
-    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY', 'password')
+    endpoint_url=os.getenv('MLFLOW_S3_ENDPOINT_URL'),
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
 )
 
 app = FastAPI(
     title="Credit Risk Prediction API",
-    description="API para predição de risco de crédito com pipeline completo de preprocessamento",
+    description="API para predição de risco de crédito com pipeline completo",
     version="1.0.0"
 )
 
@@ -48,27 +49,28 @@ FEATURE_ORDER = [
     'tot_cur_bal', 'mths_since_earliest_cr_line'
 ]
 
+# Classes
 class CreditFeatures(BaseModel):
-    loan_amnt: float = Field(..., description="Valor do empréstimo")
-    term: int = Field(..., description="Prazo em meses (36 ou 60)")
-    int_rate: float = Field(..., description="Taxa de juros")
-    grade: str = Field(..., description="Grade")
-    sub_grade: str = Field(..., description="Subgrade")
-    emp_length: int = Field(..., description="Tempo de emprego em anos")
-    home_ownership: str = Field(..., description="Tipo de propriedade")
-    annual_inc: float = Field(..., description="Renda anual")
-    verification_status: str = Field(..., description="Status de verificação")
-    purpose: str = Field(..., description="Finalidade do empréstimo")
-    addr_state: str = Field(..., description="Estado")
-    dti: float = Field(..., description="Debt-to-Income ratio")
-    inq_last_6mths: int = Field(..., description="Consultas nos últimos 6 meses")
-    mths_since_last_delinq: Optional[float] = Field(None, description="Meses desde último atraso")
-    open_acc: int = Field(..., description="Número de contas abertas")
-    revol_bal: float = Field(..., description="Saldo rotativo")
-    total_acc: float = Field(..., description="Total de contas")
-    initial_list_status: str = Field(..., description="Status inicial da lista")
-    tot_cur_bal: float = Field(..., description="Saldo atual total")
-    mths_since_earliest_cr_line: float = Field(..., description="Meses desde a primeira linha de crédito")
+    loan_amnt: float
+    term: int
+    int_rate: float
+    grade: str
+    sub_grade: str
+    emp_length: int
+    home_ownership: str
+    annual_inc: float
+    verification_status: str
+    purpose: str
+    addr_state: str
+    dti: float
+    inq_last_6mths: int
+    mths_since_last_delinq: Optional[float]
+    open_acc: int
+    revol_bal: float
+    total_acc: float
+    initial_list_status: str
+    tot_cur_bal: float
+    mths_since_earliest_cr_line: float
 
 
 class PredictionResponse(BaseModel):
@@ -77,165 +79,122 @@ class PredictionResponse(BaseModel):
     prediction_timestamp: str
     minio_storage_path: str
 
-class ModelLoader:
-    def __init__(self, run_id: str = "95e7b8ca498b4398bcd094187e578858", max_retries: int = 5, retry_delay: int = 10):
-        self.run_id = run_id
-        self.max_retries = max_retries
-        self.retry_delay = retry_delay
-        self._model: Optional[mlflow.pyfunc.PyFuncModel] = None
 
-    def load(self) -> mlflow.pyfunc.PyFuncModel:
-        """
-        Carrega o modelo do MLflow com retry em caso de falha
-        """
-        if self._model is not None:
-            return self._model
-
-        retries = 0
-        last_exception = None
-
-        while retries < self.max_retries:
-            try:
-                logger.info(f"Tentativa {retries + 1} de {self.max_retries} para carregar o modelo...")
-                model_uri = f'runs:/{self.run_id}/model'
-                self._model = mlflow.pyfunc.load_model(model_uri)
-                logger.info("Modelo carregado com sucesso!")
-                return self._model
-
-            except Exception as e:
-                last_exception = e
-                logger.warning(f"Tentativa {retries + 1} falhou. Erro: {str(e)}")
-                retries += 1
-                if retries < self.max_retries:
-                    logger.info(f"Aguardando {self.retry_delay} segundos antes da próxima tentativa...")
-                    time.sleep(self.retry_delay)
-
-        logger.error(f"Falha ao carregar o modelo após {self.max_retries} tentativas")
-        raise RuntimeError(f"Falha ao carregar o modelo: {str(last_exception)}")
-
-@lru_cache(maxsize=1)
-def get_model_loader() -> ModelLoader:
-    """
-    Retorna uma instância única do ModelLoader
-    """
-    return ModelLoader()
-
+# Carregamento de modelos e pipeline
 @lru_cache(maxsize=1)
 def load_model() -> mlflow.pyfunc.PyFuncModel:
-    """
-    Carrega o modelo do MLflow usando o ModelLoader
-    """
-    loader = get_model_loader()
-    return loader.load()
+    run_id = "7c0af99bcb044023a853c53483033e07"
+    logger.debug("Tentando carregar o modelo do MLflow...")
+    try:
+        model_uri = f"runs:/{run_id}/model"
+        model = mlflow.pyfunc.load_model(model_uri)
+        logger.info("Modelo carregado com sucesso.")
+        return model
+    except Exception as e:
+        logger.error(f"Erro ao carregar modelo: {e}")
+        raise RuntimeError(f"Erro ao carregar modelo: {e}")
+
 
 @lru_cache(maxsize=1)
 def load_preprocessing_pipeline():
-    """
-    Carrega a pipeline de preprocessamento salva
-    """
+    pipeline_path = "pipeline.pkl"
+    logger.debug("Tentando carregar o pipeline de preprocessamento...")
     try:
-        pipeline_path = 'pipeline.pkl'
         pipeline = joblib.load(pipeline_path)
-        logger.info("Pipeline de preprocessamento carregada com sucesso")
+        logger.info("Pipeline carregado com sucesso.")
         return pipeline
     except Exception as e:
-        logger.error(f"Erro ao carregar pipeline: {str(e)}")
-        raise RuntimeError(f"Falha ao carregar pipeline: {str(e)}")
+        logger.error(f"Erro ao carregar pipeline: {e}")
+        raise RuntimeError(f"Erro ao carregar pipeline: {e}")
 
-def upload_to_minio(bucket_name: str, object_name: str, data: dict):
-    """Upload dos dados para o MinIO"""
-    try:
-        current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        object_name_with_timestamp = f"{object_name}_{current_time}.json"
-
-        s3_client.put_object(
-            Bucket=bucket_name,
-            Key=object_name_with_timestamp,
-            Body=json.dumps(data)
-        )
-
-        logger.info(f"Dados enviados ao MinIO: {object_name_with_timestamp}")
-        return object_name_with_timestamp
-    except Exception as e:
-        logger.error(f"Erro ao enviar dados ao MinIO: {str(e)}")
-        raise
 
 def reorder_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Reordena as features do DataFrame conforme a ordem especificada"""
+    logger.debug(f"Reordenando features conforme: {FEATURE_ORDER}")
     return df[FEATURE_ORDER]
+
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(features: CreditFeatures):
     try:
-        # Converter input para DataFrame
+        # Input para DataFrame
+        logger.debug("Convertendo entrada para DataFrame...")
+        # Usando model_dump ao invés de dict (correção da depreciação)
         input_df = pd.DataFrame([features.model_dump()])
-        
-        # Reordenar features
+
+        # Reordenando
         input_df = reorder_features(input_df)
-        
-        logger.info(f"Input features order: {input_df.columns.tolist()}")
-        
-        # Carregar e aplicar a pipeline de preprocessamento
+        logger.debug(f"Features reordenadas: {input_df.columns.tolist()}")
+
+        # Pipeline
+        logger.debug("Carregando e aplicando pipeline...")
         pipeline = load_preprocessing_pipeline()
         processed_data = pipeline.transform(input_df)
-        
-        logger.info(f"Processed data shape: {processed_data.shape}")
-        
-        # Carregar modelo e fazer predição
+        logger.debug(f"Dados processados: {processed_data.shape}")
+        logger.debug(f"Processed data:\n{processed_data}")
+
+        # Modelo
+        logger.debug("Carregando modelo para predição...")
         model = load_model()
+
+        # Predição
+        logger.debug("Executando predição...")
+        prediction = model.predict(processed_data)
         
-        if hasattr(model, 'predict_proba'):
-            prediction_proba = model.predict_proba(processed_data)
-            probability = float(prediction_proba[0][1])
-            prediction = int(probability >= 0.5)
-        else:
-            prediction = model.predict(processed_data)
-            probability = float(prediction[0])
-
-        # Preparar resultado
+        # Convertendo tipos para serialização
+        final_prediction = int(prediction[0])  # Convertendo np.int64 para int
+        probability = float(prediction[0])     # Convertendo para float
+        
+        # MinIO
+        logger.debug("Preparando upload para MinIO...")
         current_time = datetime.datetime.now().isoformat()
+        
+        # Garantindo que todos os dados sejam serializáveis
         result = {
-            "input_data": features.model_dump(),
-            "prediction": prediction,
-            "probability": probability,
-            "timestamp": current_time
+            "input_data": features.model_dump(),  # Usando model_dump
+            "prediction": final_prediction,        # Já convertido para int
+            "probability": probability,            # Já convertido para float
+            "timestamp": current_time,
         }
-
-        # Upload para MinIO
-        minio_path = upload_to_minio(
-            bucket_name="predictions",
-            object_name="credit_prediction",
-            data=result
+        
+        # Convertendo qualquer número numpy para Python nativo
+        result = {k: v.item() if hasattr(v, 'item') else v 
+                 for k, v in result.items()}
+        
+        minio_path = f"predictions/credit_prediction_{current_time}.json"
+        
+        s3_client.put_object(
+            Bucket="predictions",
+            Key=minio_path,
+            Body=json.dumps(result)  # Agora todos os dados são serializáveis
         )
+        logger.info("Resultado salvo no MinIO.")
 
         return PredictionResponse(
-            prediction=prediction,
+            prediction=final_prediction,
             probability=probability,
             prediction_timestamp=current_time,
             minio_storage_path=minio_path
         )
 
     except Exception as e:
-        logger.error(f"Erro durante a predição: {str(e)}")
+        logger.error(f"Erro durante predição: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/health")
 async def health_check():
     try:
-        model = load_model()
-        pipeline = load_preprocessing_pipeline()
+        logger.debug("Verificando saúde da aplicação...")
+        load_model()
+        load_preprocessing_pipeline()
         s3_client.list_buckets()
-
-        return {
-            "status": "healthy",
-            "mlflow_model_loaded": True,
-            "preprocessing_pipeline_loaded": True,
-            "minio_connected": True,
-            "timestamp": datetime.datetime.now().isoformat()
-        }
+        logger.info("Health check passou.")
+        return {"status": "healthy"}
     except Exception as e:
-        logger.error(f"Erro durante health check: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Health check falhou: {e}")
+        raise HTTPException(status_code=500, detail=f"Health check error: {e}")
 
+
+# Inicialização
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
