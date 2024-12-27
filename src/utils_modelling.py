@@ -8,6 +8,8 @@ from sklearn.base import BaseEstimator, TransformerMixin
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.pipeline import Pipeline
+import json
 
 
 def analisy_univariate(data, features, histoplot=True, barplot=False, mean=None, text_y=0.5, outliers=False, kde=False, color='skyblue', figsize=(24, 12)):
@@ -458,7 +460,70 @@ class CatOneHotEncoder(BaseEstimator, TransformerMixin):
             index=X.index
         )
         return one_hot_df
-
+class FeaturePreprocessor(BaseEstimator, TransformerMixin):
+    def __init__(self):
+        self.pipeline = None
+        self.expected_columns = None
+        
+    def fit(self, X, y=None):
+        # Cria e treina o pipeline
+        self.pipeline = Pipeline([
+            ('discretizer_combiner', DiscretizerCombiner()),
+            ('cat_combiner', CatCombiner()),
+            ('cat_imputer', CatImputer()),
+            ('cat_one_hot_encoder', CatOneHotEncoder())
+        ])
+        
+        # Treina o pipeline e captura as colunas resultantes
+        transformed_data = self.pipeline.fit_transform(X)
+        self.expected_columns = transformed_data.columns.tolist()
+        
+        return self
+        
+    def transform(self, X):
+        if self.pipeline is None or self.expected_columns is None:
+            raise ValueError("O preprocessador precisa ser treinado antes de transformar os dados")
+            
+        # Aplica as transformações
+        X_transformed = self.pipeline.transform(X)
+        
+        # Garante que todas as colunas esperadas estão presentes
+        missing_cols = set(self.expected_columns) - set(X_transformed.columns)
+        for col in missing_cols:
+            X_transformed[col] = 0
+            
+        # Garante a ordem correta das colunas
+        X_transformed = X_transformed[self.expected_columns]
+        
+        return X_transformed
+    
+    def get_feature_names(self):
+        """Retorna os nomes das features após a transformação"""
+        if self.expected_columns is None:
+            raise ValueError("O preprocessador precisa ser treinado primeiro")
+        return self.expected_columns
+    
+    def save_preprocessor(self, filepath):
+        """Salva o preprocessador e suas configurações"""
+        if self.expected_columns is None:
+            raise ValueError("O preprocessador precisa ser treinado primeiro")
+            
+        preprocessor_config = {
+            'expected_columns': self.expected_columns
+        }
+        
+        with open(filepath, 'w') as f:
+            json.dump(preprocessor_config, f)
+            
+    @classmethod
+    def load_preprocessor(cls, filepath):
+        """Carrega um preprocessador já treinado"""
+        with open(filepath, 'r') as f:
+            config = json.load(f)
+            
+        preprocessor = cls()
+        preprocessor.expected_columns = config['expected_columns']
+        return preprocessor
     
                 
             
