@@ -526,4 +526,34 @@ class FeaturePreprocessor(BaseEstimator, TransformerMixin):
         return preprocessor
     
                 
-            
+
+def compute_credit_scores(X, probas=None, scorecard=None):
+    '''
+    Compute credit scores based on input features and scorecard.
+    
+    Parameters:
+    - X: pandas DataFrame with processed features
+    - probas: optional, probability predictions
+    - scorecard: DataFrame with scoring rules
+    
+    Returns:
+    - float: calculated credit score
+    '''
+    try:
+        # Select relevant dummies
+        scorecard_dummies = scorecard.loc[~(scorecard['Dummy'] == 'const') & 
+                                        ~(scorecard['P-Value'] == 'reference category')]
+        X_dummies = X[scorecard_dummies['Dummy'].values]
+        
+        # Set index for faster lookup
+        scorecard_dummies = scorecard_dummies.set_index('Dummy')
+        
+        # Calculate score
+        intercept_score = scorecard.loc[scorecard['Dummy'] == 'const', 'Score'].values[0]
+        scores = intercept_score + X_dummies.mul(scorecard_dummies['Score']).sum(axis=1)
+        
+        return float(scores.iloc[0])
+    except Exception as e:
+        raise RuntimeError(f"Error computing credit score: {e}")
+    
+    
