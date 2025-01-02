@@ -4,7 +4,15 @@ from services.prediction_service import PredictionService
 from services.model_services import ModelService
 from services.storage_service import StorageService
 import logging
-from src.utils_modelling import compute_credit_scores, FeaturePreprocessor, CatOneHotEncoder, DiscretizerCombiner, CatCombiner, CatImputer
+import sys
+from src.utils_modelling import (
+    compute_credit_scores, 
+    FeaturePreprocessor, 
+    CatOneHotEncoder, 
+    DiscretizerCombiner, 
+    CatCombiner, 
+    CatImputer
+)
 import mlflow
 
 logging.basicConfig(level=logging.DEBUG)

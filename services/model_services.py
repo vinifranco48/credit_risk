@@ -4,7 +4,14 @@ import pandas as pd
 from functools import lru_cache
 import logging
 from config.settings import Settings
-
+from src.utils_modelling import (
+    compute_credit_scores, 
+    FeaturePreprocessor, 
+    CatOneHotEncoder, 
+    DiscretizerCombiner, 
+    CatCombiner, 
+    CatImputer
+)
 logger = logging.getLogger(__name__)
 settings = Settings()
 

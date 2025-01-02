@@ -1,19 +1,19 @@
-# Dockerfile
-FROM python:3.9-slim
+FROM python:3.11
 
 WORKDIR /app
 
-# Copiar o arquivo de requisitos
-COPY ./requirements.txt /app/requirements.txt
+# Copiar requirements e instalar dependências primeiro
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-# Instalar dependências
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+# Copiar todo o código fonte
+COPY . .
 
-# Instalar pytest e httpx
-RUN pip install pytest httpx
+# Garantir que temos __init__.py em todos os diretórios necessários
+RUN touch src/__init__.py
 
-# Copiar a pasta src para o contêiner
-COPY ./src /app/src
+# Configurar PYTHONPATH
+ENV PYTHONPATH="/app:${PYTHONPATH}"
 
-# Definir o comando padrão
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Modificar o comando para executar via python ao invés de uvicorn diretamente
+CMD ["python", "main.py"]
