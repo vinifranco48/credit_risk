@@ -23,7 +23,6 @@ app = FastAPI(
     description="API for credit risk prediction with complete pipeline",
     version="1.0.0"
 )
-client = StorageService.get_client()
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(features: CreditFeatures):
     try:
@@ -47,6 +46,9 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+    import os
     uvicorn.run(app, host="0.0.0.0", port=8000)
+    logger.debug(f"AWS_ACCESS_KEY_ID: {os.environ.get('AWS_ACCESS_KEY_ID')}")
+    logger.debug(f"AWS_SECRET_ACCESS_KEY: {os.environ.get('AWS_SECRET_ACCESS_KEY')}")
     
     
