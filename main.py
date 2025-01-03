@@ -17,7 +17,7 @@ import mlflow
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-mlflow.set_tracking_uri("http://localhost:5001")
+mlflow.set_tracking_uri("http://mlflow-web:5000")
 app = FastAPI(
     title="Credit Risk Prediction API",
     description="API for credit risk prediction with complete pipeline",
