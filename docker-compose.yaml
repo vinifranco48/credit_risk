@@ -1,11 +1,30 @@
+version: '3.8'
+
 services:
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: streamlit
+    ports:
+      - '8501:8501'
+    volumes:
+      - '.:/app'
+    networks:
+      - mlflow
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AWS_ACCESS_KEY_ID=mlflow
+      - AWS_SECRET_ACCESS_KEY=password
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+
   jupyter:
     build:
       context: ./docker
       dockerfile: Dockerfile.jupyter
     container_name: jupyter
     ports:
-      - '8889:8888'  # Alterado de 8888
+      - '8889:8888'
     volumes:
       - './notebooks:/home/jovyan/work'
     networks:
@@ -22,7 +41,7 @@ services:
       context: ./docker
       dockerfile: Dockerfile
     ports:
-      - "5001:5000"  # Alterado de 5000
+      - "5001:5000"
     environment:
       - AWS_ACCESS_KEY_ID=mlflow
       - AWS_SECRET_ACCESS_KEY=password
@@ -35,10 +54,10 @@ services:
       - minio
 
   minio:
-    image: 'minio/minio:latest' 
+    image: 'minio/minio:latest'
     ports:
-      - '9005:9000'  # Alterado de 9001/9002
-      - '8905:8900'  # Alterado de 8901
+      - '9005:9000'
+      - '8905:8900'
     environment:
       MINIO_ROOT_USER: mlflow
       MINIO_ROOT_PASSWORD: password
@@ -59,7 +78,7 @@ services:
   pgsql:
     image: 'postgres:14'
     ports:
-      - '5434:5432'  # Alterado de 5433
+      - '5434:5432'
     environment:
       POSTGRES_DB: 'mlflow'
       POSTGRES_USER: 'mlflow'
@@ -82,11 +101,11 @@ services:
 
   api_model:
     build:
-      context: .  # O Dockerfile está agora na raiz do projeto
+      context: .
       dockerfile: Dockerfile
     container_name: api_model
     ports:
-      - '8001:8000'  # Alterado de 8000
+      - '8001:8000'
     volumes:
       - '.:/app'
     networks:
