@@ -45,6 +45,10 @@ class PredictionService:
             input_df = pd.DataFrame([features])
             input_df = PredictionService.reorder_features(input_df)
 
+            timestamp = datetime.datetime.now().isoformat()
+            features_path = f"features/{timestamp}.json"
+            await StorageService.upload_json(features_path, features, bucket_name="mlflow")
+
             pipeline = ModelService.load_preprocessing_pipeline()
             processed_data = pipeline.transform(input_df)
 
@@ -80,6 +84,8 @@ class PredictionService:
                 "prediction_timestamp": timestamp,
                 "minio_storage_path": minio_path
             }
+
+
         
         except Exception as e:
             logger.error(f"Error predicting: {e}")

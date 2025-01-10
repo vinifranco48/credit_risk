@@ -97,16 +97,3 @@ class StorageService:
             logger.error(f"Falha na conexão com MinIO/S3: {e}")
             return False
 
-# Exemplo de uso
-if __name__ == "__main__":
-    # Configura o logging
-    logging.basicConfig(level=logging.INFO)
-
-    # Testa a conexão com o MinIO/S3
-    if StorageService.test_connection():
-        print("Conexão com MinIO/S3 bem-sucedida!")
-
-        # Salva um objeto de teste
-        test_data = {"test": "data"}
-        import asyncio
-        asyncio.run(StorageService.upload_json("test/data.json", test_data))
