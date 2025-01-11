@@ -40,8 +40,10 @@ class PredictionService:
         return final_prediction, probability
 
     @staticmethod
-    async def predict(features: Dict [str, Any]) -> Dict[str, Any]:
+    async def predict(features: Dict[str, Any]) -> Dict[str, Any]:
+        migrator = None
         try:
+            print("Iniciando processo de predição...")
             input_df = pd.DataFrame([features])
             input_df = PredictionService.reorder_features(input_df)
 
@@ -55,7 +57,6 @@ class PredictionService:
             model = ModelService.load_model()
             raw_prediction = model.predict(processed_data)
             prediction, probability = PredictionService.process_prediction(raw_prediction)
-
 
             scorecard = ModelService.load_scorecard()
             credit_score = compute_credit_scores(
@@ -77,18 +78,33 @@ class PredictionService:
 
             await StorageService.upload_json(minio_path, result)
 
-            return {
-                "prediction": prediction,
-                "probability": probability,
-                "credit_score": credit_score,
-                "prediction_timestamp": timestamp,
-                "minio_storage_path": minio_path
-            }
-
+            print("Iniciando salvamento no PostgreSQL...")
             migrator = MinioToPostgres()
-            migrator.create_tables()
-            migrator.process_mlflow_data()
-        
+            
+            # Primeiro salvamos as features
+            feature_id = migrator.insert_feature(features)
+            print(f"Features salvas com ID: {feature_id}")
+            
+            # Depois salvamos a predição
+            prediction_data = {
+                **result,
+                "feature_id": feature_id
+            }
+            migrator.insert_prediction(prediction_data)
+            print("Predição salva com sucesso!")
+
+            return result
+
         except Exception as e:
-            logger.error(f"Error predicting: {e}")
+            print(f"Erro durante a predição: {e}")
+            if migrator and hasattr(migrator, 'pg_conn'):
+                migrator.pg_conn.rollback()
             raise RuntimeError(f"Error predicting: {e}")
+        
+        finally:
+            if migrator:
+                if hasattr(migrator, 'pg_cursor') and migrator.pg_cursor:
+                    migrator.pg_cursor.close()
+                if hasattr(migrator, 'pg_conn') and migrator.pg_conn:
+                    migrator.pg_conn.close()
+                print("Conexões fechadas com sucesso!")
