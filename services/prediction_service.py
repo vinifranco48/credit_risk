@@ -7,7 +7,7 @@ import logging
 from services.model_services import ModelService
 from services.storage_service import StorageService
 from src.utils_modelling import compute_credit_scores
-
+from services.database_service import MinioToPostgres
 
 
 logger = logging.getLogger(__name__)
@@ -85,7 +85,9 @@ class PredictionService:
                 "minio_storage_path": minio_path
             }
 
-
+            migrator = MinioToPostgres()
+            migrator.create_tables()
+            migrator.process_mlflow_data()
         
         except Exception as e:
             logger.error(f"Error predicting: {e}")

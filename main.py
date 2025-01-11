@@ -3,6 +3,7 @@ from models.schemas import CreditFeatures, PredictionResponse
 from services.prediction_service import PredictionService
 from services.model_services import ModelService
 from services.storage_service import StorageService
+from services.database_service import MinioToPostgres
 import logging
 import sys
 from src.utils_modelling import (

@@ -109,3 +109,8 @@ zipp==3.21.0
 streamlit
 datetime==4.3.0
 plotly==5.15.0
+streamlit
+datetime==4.3.0
+plotly==5.15.0
+psycopg2==2.9.9
+minio==7.1.15
