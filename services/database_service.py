@@ -22,8 +22,8 @@ class MinioToPostgres:
                 "dbname": "mlflow",
                 "user": "mlflow",
                 "password": "secret",
-                "host": "pgsql",
-                "port": "5432"
+                "host": "localhost",
+                "port": "5434"
             }
             
             print(f"Tentando conectar ao PostgreSQL com params: {db_params}")
@@ -89,9 +89,60 @@ class MinioToPostgres:
             self.pg_cursor.execute(sql, pred_data)
             self.pg_conn.commit()
             print("Predição inserida com sucesso!")
+        
             
         except Exception as e:
             print(f"Erro ao inserir predição: {e}")
+            self.pg_conn.rollback()
+            raise
+    def create_tables(self):
+        """Cria as tabelas necessárias no PostgreSQL se elas não existirem"""
+        try:
+            # Criação da tabela loan_features
+            self.pg_cursor.execute("""
+                CREATE TABLE IF NOT EXISTS loan_features (
+                    id SERIAL PRIMARY KEY,
+                    loan_amnt FLOAT,
+                    term VARCHAR(20),
+                    int_rate FLOAT,
+                    grade VARCHAR(1),
+                    sub_grade VARCHAR(2),
+                    emp_length VARCHAR(20),
+                    home_ownership VARCHAR(20),
+                    annual_inc FLOAT,
+                    verification_status VARCHAR(20),
+                    purpose VARCHAR(50),
+                    addr_state VARCHAR(2),
+                    dti FLOAT,
+                    inq_last_6mths INTEGER,
+                    mths_since_last_delinq INTEGER,
+                    open_acc INTEGER,
+                    revol_bal FLOAT,
+                    total_acc INTEGER,
+                    initial_list_status VARCHAR(1),
+                    tot_cur_bal FLOAT,
+                    mths_since_earliest_cr_line INTEGER
+                )
+            """)
+
+            # Criação da tabela loan_predictions
+            self.pg_cursor.execute("""
+                CREATE TABLE IF NOT EXISTS loan_predictions (
+                    id SERIAL PRIMARY KEY,
+                    prediction INTEGER,
+                    probability FLOAT,
+                    credit_score FLOAT,
+                    prediction_timestamp TIMESTAMP,
+                    minio_storage_path VARCHAR(255),
+                    feature_id INTEGER REFERENCES loan_features(id)
+                )
+            """)
+
+            self.pg_conn.commit()
+            print("Tabelas criadas com sucesso!")
+            
+        except Exception as e:
+            print(f"Erro ao criar tabelas: {e}")
             self.pg_conn.rollback()
             raise
 if __name__ == "__main__":
