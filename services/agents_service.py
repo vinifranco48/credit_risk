@@ -33,19 +33,75 @@ class AgentState(TypedDict):
 
 class DataTools:
     def __init__(self, engine):
-        self.engine = engine
+        self.engine = create_engine(
+            f"postgresql://{DB_PARAMS['user']}:{DB_PARAMS['password']}@"
+            f"{DB_PARAMS['host']}:{DB_PARAMS['port']}/{DB_PARAMS['dbname']}"
+        )
     
-    def fetch_loan_data(self) -> pd.DataFrame:
+    
+    def fetch_loan_data(self, id:int) -> pd.DataFrame:
 
         query ="""
-            SELECT f.id, f.loan_amount, f.term, f.int_rate, f.home_ownership, f.annual_inc, f.verification_status,
-                    f.purpose, f.dti, f.inq_last_6mths, f.mths_since_last_delinq, f.open_acc, f.revol_bal, f.initial_list_status,
-                    f.tot_cur_bal, f.mths_since_earliest_cr_line
-            FROM loan_features f
-
-
-
-
-        
+          SELECT f.id, f.term, f.int_rate, f.home_ownership, f.annual_inc, f.verification_status,
+            f.purpose, f.dti, f.inq_last_6mths, f.mths_since_last_delinq, f.open_acc, f.revol_bal, f.initial_list_status,
+            f.tot_cur_bal, f.mths_since_earliest_cr_line, l.credit_score
+            FROM loan_features AS f
+            INNER JOIN loan_predictions AS l ON f.id = l.id      
         """
+        return pd.read_sql(query, self.engine, params={'id':id})
+class RiskAnalyzer:
+    def __init__(self, llm_client):
+        self.llm = llm_client
+
+    def analyze_risk(self, data : pd.DataFrame) -> dict:
+        risk_factors = {
+            'credit_score_risk':self._evaluate_credit_score(data['credit_score'].iloc[0]),
+            'income_risk':self._evaluate_income(data['annual_inc']).iloc[0],
+            'dti_risk':self._evaluate_dti(data['dti']).iloc[0],
+        }
+
+        return risk_factors
+
+    def generate_risk_report(self, data:pd.DataFrame, risk_factors:dict) -> str:
+        prompt = f"""
+                    Analise os seguintes dados de emprestimo e fatores de risco:
+
+                    Dados de emprestimo
+                    {data.to_dict()}
+
+                    fatores de risco:
+                    {risk_factors}
+
+                    Gere um relatório detalhado que inclua:
+                    1. Resumo dos principais riscos identificados
+                    2. Comparação com perfis similares
+                    3. Recomendações específicas
+                    4. Sinais de alerta, se houver
+
+                    """
+        response =self.llm.chat.completions.create(
+                    messages=[{"role":"user", "content":prompt}],
+                    temperature=0.7     
+                    )
+        return response.choices[0].messages.content
+    
+    def _evaluate_credit_score(self, score: float) -> str:
+        if score >= 750: return "BAIXO"
+        elif score >= 650: return "MÉDIO"
+        return "ALTO"
+    
+    def _evaluate_income(self, income: float) -> str:
+        if income >= 100000: return "BAIXO"
+        elif income >= 50000: return "MÉDIO"
+        return "ALTO"
+    
+    def _evaluate_dti(self, dti: float) -> str:
+        if dti <= 30: return "BAIXO"
+        elif dti <= 45: return "MÉDIO"
+        return "ALTO"
+
         
+    
+
+
+
