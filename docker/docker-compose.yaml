@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+ streamlit:
+   build:
+     context: ..  # Volta um diretório porque o docker-compose está na pasta docker/
+     dockerfile: docker/Dockerfile.streamlit # Caminho relativo ao contexto
+   container_name: streamlit
+   ports:
+     - '8501:8501'
+   volumes:
+     - '..:/app'  # Volta um diretório para acessar a raiz do projeto
+   networks:
+     - Dockerfile.mlflow
+   environment:
+     - PYTHONUNBUFFERED=1
+     - AWS_ACCESS_KEY_ID=mlflow
+     - AWS_SECRET_ACCESS_KEY=password
+     - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+
+
+ mlflow-web:
+   build:
+     context: ..
+     dockerfile: docker/Dockerfile.mlflow
+   ports:
+     - "5001:5000"
+   environment:
+     - AWS_ACCESS_KEY_ID=mlflow
+     - AWS_SECRET_ACCESS_KEY=password
+     - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+   networks:
+     - Dockerfile.mlflow
+   entrypoint: mlflow server --backend-store-uri postgresql+psycopg2://mlflow:secret@pgsql/mlflow --default-artifact-root s3://mlflow/ --host 0.0.0.0 --port 5000
+   depends_on:
+     - pgsql
+     - minio
+
+ minio:
+   image: 'minio/minio:latest'
+   ports:
+     - '9005:9000'
+     - '8905:8900'
+   environment:
+     MINIO_ROOT_USER: mlflow
+     MINIO_ROOT_PASSWORD: password
+   volumes:
+     - 'mlflow-minio:/data/minio'
+   networks:
+     - Dockerfile.mlflow
+   command: 'minio server /data/minio --console-address ":8900"'
+   healthcheck:
+     test:
+       - CMD
+       - curl
+       - '-f'
+       - 'http://localhost:9000/minio/health/live'
+     retries: 3
+     timeout: 5s
+
+ pgsql:
+   image: 'postgres:14'
+   ports:
+     - '5434:5432'
+   environment:
+     POSTGRES_DB: 'mlflow'
+     POSTGRES_USER: 'mlflow'
+     POSTGRES_PASSWORD: 'secret'
+   volumes:
+     - 'mlflow-pgsql:/var/lib/postgresql/data'
+   networks:
+     - Dockerfile.mlflow
+   healthcheck:
+     test:
+       - CMD
+       - pg_isready
+       - '-q'
+       - '-d'
+       - 'mlflow'
+       - '-U'
+       - 'mlflow'
+     retries: 3
+     timeout: 5s
+
+ api_model:
+   build:
+     context: ..
+     dockerfile: docker/Dockerfile
+   container_name: api_model
+   ports:
+     - '8001:8000'
+   volumes:
+     - '..:/app'
+   networks:
+     - Dockerfile.mlflow
+   environment:
+     - PYTHONUNBUFFERED=1
+     - AWS_ACCESS_KEY_ID=mlflow
+     - AWS_SECRET_ACCESS_KEY=password
+     - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+
+networks:
+ Dockerfile.mlflow:
+   driver: bridge
+
+volumes:
+ mlflow-pgsql:
+   driver: local
+ mlflow-minio:
+   driver: local
