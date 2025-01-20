@@ -43,6 +43,9 @@ class PredictionService:
     async def predict(features: Dict[str, Any]) -> Dict[str, Any]:
         migrator = None
         try:
+            
+            migrator = MinioToPostgres() 
+            migrator.create_tables()
             print("Iniciando processo de predição...")
             input_df = pd.DataFrame([features])
             input_df = PredictionService.reorder_features(input_df)
@@ -94,7 +97,7 @@ class PredictionService:
             print("Predição salva com sucesso!")
 
             return result
-
+       
         except Exception as e:
             print(f"Erro durante a predição: {e}")
             if migrator and hasattr(migrator, 'pg_conn'):
