@@ -19,11 +19,7 @@ class MinioToPostgres:
             
             # Configuração PostgreSQL
             db_params = {
-                "dbname": "mlflow",
-                "user": "mlflow",
-                "password": "secret",
-                "host": "pgsql",
-                "port": "5432"
+                
             }
             
             print(f"Tentando conectar ao PostgreSQL com params: {db_params}")

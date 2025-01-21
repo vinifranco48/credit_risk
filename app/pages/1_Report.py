@@ -2,14 +2,12 @@ import streamlit as st
 from groq import Groq
 import pandas as pd
 from datetime import datetime
-import time
-
-# Import the loan analysis system (assuming it's in loan_system.py)
-from services.agents_service import LoanRiskAnalysisSystem, GROQ_API_KEY, GROQ_MODEL
+from langchain_core.messages import HumanMessage, AIMessage
+from services.agents_service import ConversationalAnalyzer, GROQ_API_KEY, GROQ_MODEL, DataTools
 
 # Page configuration
 st.set_page_config(
-    page_title="Loan Risk Analysis System",
+    page_title="Loan Analysis System",
     page_icon="💰",
     layout="wide"
 )
@@ -17,124 +15,91 @@ st.set_page_config(
 # Initialize session state variables
 if 'messages' not in st.session_state:
     st.session_state.messages = []
-if 'loan_system' not in st.session_state:
-    llm_client = Groq(api_key=GROQ_API_KEY)
-    st.session_state.loan_system = LoanRiskAnalysisSystem(llm_client)
+if 'analyzer' not in st.session_state:
+    st.session_state.analyzer = ConversationalAnalyzer(Groq(api_key=GROQ_API_KEY))
+if 'current_data' not in st.session_state:
+    st.session_state.current_data = None
 
-def analyze_loan(loan_id: int):
-    """Process loan analysis and format results for display"""
-    with st.spinner('Analyzing loan data...'):
-        result = st.session_state.loan_system.process_loan_application(loan_id)
-        
-        if result['errors']:
-            return {
-                'type': 'error',
-                'content': '\n'.join(result['errors'])
-            }
-        
-        # Format loan data
-        loan_data = result['loan_data'].to_dict('records')[0]
-        loan_info = '\n'.join([f"**{k}**: {v}" for k, v in loan_data.items()])
-        
-        # Format risk analysis
-        risk_analysis = '\n'.join([f"**{k}**: {v}" for k, v in result['risk_analysis'].items()])
-        
-        # Format insights
-        insights = '\n'.join([f"• {insight}" for insight in result['insights']])
-        
-        return {
-            'type': 'analysis',
-            'loan_data': loan_info,
-            'risk_analysis': risk_analysis,
-            'insights': insights,
-            'next_steps': result['next_steps'],
-            'report': result['report']
-        }
+def load_initial_data():
+    """Load initial data if not already loaded"""
+    if st.session_state.current_data is None:
+        try:
+            # Corrigido: fetch_loans -> fetch_loan_data
+            st.session_state.current_data = st.session_state.analyzer.data_tools.fetch_loan_data()
+            return True
+        except Exception as e:
+            st.error(f"Error loading data: {str(e)}")
+            return False
 
-def display_analysis_result(result):
-    """Display analysis results in an organized way"""
-    if result['type'] == 'error':
-        st.error(result['content'])
-        return
+def process_user_input(user_input: str):
+    """Process user input and generate response"""
+    if st.session_state.current_data is None:
+        load_initial_data()
     
-    col1, col2 = st.columns(2)
+    # Add user message
+    st.session_state.messages.append({
+        "role": "user",
+        "content": user_input
+    })
     
-    with col1:
-        with st.expander("📊 Loan Data", expanded=True):
-            st.markdown(result['loan_data'])
-        
-        with st.expander("🎯 Risk Analysis", expanded=True):
-            st.markdown(result['risk_analysis'])
+    # Generate response based on user input
+    if "tendência" in user_input.lower() or "tendencias" in user_input.lower():
+        field = next((f for f in st.session_state.current_data.columns 
+                     if f in user_input.lower()), None)
+        if field:
+            response = st.session_state.analyzer.analyze_trends(
+                st.session_state.current_data, field
+            )
+        else:
+            campos = "\n".join([f"- {col}" for col in st.session_state.current_data.columns])
+            response = f"🤔 Qual campo você gostaria de analisar as tendências? Você pode perguntar sobre:\n{campos}"
+    else:
+        response = st.session_state.analyzer.answer_query(
+            user_input, st.session_state.current_data
+        )
     
-    with col2:
-        with st.expander("💡 Insights", expanded=True):
-            st.markdown(result['insights'])
-        
-        with st.expander("➡️ Next Steps", expanded=True):
-            st.markdown(result['next_steps'])
-    
-    with st.expander("📝 Detailed Report", expanded=True):
-        st.markdown(result['report'])
+    # Add assistant response
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": response
+    })
 
 def main():
     # Header
-    st.title("🏦 Interactive Loan Risk Analysis System")
-    st.markdown("---")
+    st.title("💬 Análise Conversacional de Empréstimos")
     
-    # Sidebar
-    with st.sidebar:
-        st.header("Instructions")
-        st.markdown("""
-        1. Enter a loan ID in the input field
-        2. Click 'Analyze Loan' to process the application
-        3. View the analysis results in the expandable sections
-        4. Previous analyses will be saved in the chat history
-        """)
-        
-        st.header("About")
-        st.markdown("""
-        This system analyzes loan applications and provides:
-        - Risk assessment
-        - Financial insights
-        - Recommended next steps
-        - Detailed analysis report
-        """)
-        
-        # Clear chat button
-        if st.button("Clear Chat History"):
-            st.session_state.messages = []
-            st.rerun()
+    # Load initial data
+    load_initial_data()
     
-    # Chat interface
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            if message["type"] == "text":
+    # Main chat area
+    chat_container = st.container()
+    
+    # Display chat history
+    with chat_container:
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
                 st.markdown(message["content"])
-            elif message["type"] == "analysis":
-                display_analysis_result(message["content"])
+                
+        if not st.session_state.messages:
+            st.info("""
+            👋 Olá! Sou seu assistente de análise de empréstimos.
+            
+            Você pode me perguntar sobre:
+            - Tendências nos dados
+            - Análise de campos específicos
+            - Padrões e correlações
+            - Insights sobre a carteira
+            
+            Por exemplo:
+            - "Como está a distribuição de credit_score?"
+            - "Qual o perfil típico dos empréstimos?"
+            - "Existe relação entre renda e inadimplência?"
+            """)
     
     # Input area
-    loan_id = st.number_input("Enter Loan ID:", min_value=1, step=1)
-    
-    if st.button("Analyze Loan"):
-        # Add user message
-        st.session_state.messages.append({
-            "role": "user",
-            "type": "text",
-            "content": f"Requesting analysis for Loan ID: {loan_id}"
-        })
-        
-        # Process the loan
-        result = analyze_loan(loan_id)
-        
-        # Add assistant message with analysis
-        st.session_state.messages.append({
-            "role": "assistant",
-            "type": "analysis",
-            "content": result
-        })
-        
-        # Rerun to update the chat
+    user_input = st.chat_input("Pergunte sobre a base de empréstimos...")
+    if user_input:
+        process_user_input(user_input)
         st.rerun()
 
 if __name__ == "__main__":
