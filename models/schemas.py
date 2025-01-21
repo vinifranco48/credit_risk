@@ -11,7 +11,7 @@ class CreditFeatures(BaseModel):
     home_ownership: str = Field(..., description="Home ownership status")
     annual_inc: float = Field(..., description="Annual income")
     verification_status: str = Field(..., description="Verification status")
-    purpose: str = Field(..., description="Loan purpose")
+    purpose: str = Field(..., description="Loan purpose")  
     addr_state: str = Field(..., description="State address")
     dti: float = Field(..., description="Debt-to-income ratio")
     inq_last_6mths: int = Field(..., description="Inquiries last 6 months")

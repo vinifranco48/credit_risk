@@ -28,7 +28,7 @@ class AgentState(TypedDict):
     messages: Sequence[BaseMessage]
     loan_data: Union[pd.DataFrame, None]
     risk_analysis: Union[dict, None]
-    report: str
+    report: str        
     insights: list[str]
     next_steps: str
     errors: list[str]
@@ -48,7 +48,7 @@ class DataTools:
                 f.purpose, f.dti, f.inq_last_6mths, f.mths_since_last_delinq, f.open_acc, 
                 f.revol_bal, f.initial_list_status, f.tot_cur_bal, f.mths_since_earliest_cr_line, 
                 l.credit_score
-            FROM loan_features AS f
+            FROM loan_features AS 
             INNER JOIN loan_predictions AS l ON f.id = l.id
             WHERE f.id = :id
         """)

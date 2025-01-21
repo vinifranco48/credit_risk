@@ -15,8 +15,13 @@ COPY . .
 # Define o PYTHONPATH para incluir o diretório raiz do projeto
 ENV PYTHONPATH=/app
 
-# Expõe a porta do Streamlit
+# Expõe a porta do Streamlit vinici poiuuds vicniuyyyeaertys vyctdgeydfg2yuegffyuegffyue
 EXPOSE 8501
 
 # Comando para rodar o Streamlit
-CMD ["streamlit", "run", "app/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "app/app.py", "--server.port=8501", "--server.address=0.0.0.0"] 
+
+
+
+
+
