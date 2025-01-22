@@ -7,18 +7,22 @@ from groq import Groq
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Configuration
 DB_PARAMS = {
-    "dbname": "mlflow",
-    "user": "mlflow",
-    "password": "secret",
-    "host": "pgsql",
-    "port": "5432"
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT")
 }
 
-GROQ_API_KEY = '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'
-GROQ_MODEL = "mixtral-8x7b-32768"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = os.getenv("GROQ_MODEL")
 
 class AgentState(TypedDict):
     """Type definition for the agent's state"""

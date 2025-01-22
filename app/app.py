@@ -64,13 +64,9 @@ with st.form("prediction_form"):
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("📝 Customer Information")
         loan_amnt = st.number_input("Loan Amount", min_value=0.0, value=10000.0, help="Enter the loan amount requested by the customer.")
         term = st.selectbox("Term (months)", [36, 60], help="Select the loan term in months.")
         int_rate = st.number_input("Interest Rate (%)", min_value=0.0, max_value=100.0, value=10.0, help="Enter the interest rate for the loan.")
-        grade = st.selectbox("Grade", ['A', 'B', 'C', 'D', 'E', 'F', 'G'], help="Select the loan grade.")
-        sub_grade = st.selectbox("Sub Grade", [f"{g}{n}" for g in ['A', 'B', 'C', 'D', 'E', 'F', 'G'] for n in range(1, 6)], help="Select the loan sub-grade.")
-        emp_length = st.number_input("Employment Length (years)", min_value=0, value=5, help="Enter the customer's employment length in years.")
         home_ownership = st.selectbox("Home Ownership", ["RENT", "OWN", "MORTGAGE", "OTHER"], help="Select the customer's home ownership status.")
         annual_inc = st.number_input("Annual Income", min_value=0.0, value=50000.0, help="Enter the customer's annual income.")
         verification_status = st.selectbox("Verification Status", ["Verified", "Not Verified", "Source Verified"], help="Select the verification status of the customer's income.")
@@ -80,7 +76,6 @@ with st.form("prediction_form"):
         ], help="Select the purpose of the loan.")
 
     with col2:
-        st.subheader("📊 Additional Information")
         addr_state = st.selectbox("State", [
             "CA", "NY", "TX", "FL", "IL", "NJ", "PA", "OH", "GA", "MI",
             "NC", "VA", "MD", "AZ", "MA", "WA", "CO", "MN", "IN", "TN"
@@ -103,9 +98,6 @@ if submitted:
         "loan_amnt": loan_amnt,
         "term": term,
         "int_rate": int_rate,
-        "grade": grade,
-        "sub_grade": sub_grade,
-        "emp_length": emp_length,
         "home_ownership": home_ownership,
         "annual_inc": annual_inc,
         "verification_status": verification_status,
@@ -167,19 +159,5 @@ if submitted:
         st.error(f"Response content: {e.response.content if e.response else 'No response'}")
 
 # Sidebar aprimorada
-st.sidebar.title("🔧 API Status")
-if st.sidebar.button("🩺 Check API Health"):
-    try:
-        health_response = requests.get("http://api_model:8000/health")
-        if health_response.status_code == 200:
-            st.sidebar.success("✅ API is healthy")
-        else:
-            st.sidebar.error("❌ API is not responding correctly")
-    except requests.exceptions.RequestException:
-        st.sidebar.error("❌ Could not connect to API")
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 📌 Instructions")
-st.sidebar.write("1. Fill in all the fields in the form.")
-st.sidebar.write("2. Click on 'Predict Credit Risk' to get the results.")
-st.sidebar.write("3. Check the API status if you encounter any issues.")
+

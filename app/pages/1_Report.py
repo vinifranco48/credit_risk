@@ -82,7 +82,7 @@ def main():
                 
         if not st.session_state.messages:
             st.info("""
-            👋 Olá! Sou seu assistente de análise de empréstimos.
+            Olá! Sou seu assistente de análise de empréstimos.
             
             Você pode me perguntar sobre:
             - Tendências nos dados

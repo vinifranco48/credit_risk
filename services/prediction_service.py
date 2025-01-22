@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class PredictionService:
     FEATURE_ORDER = [
-        'loan_amnt', 'term', 'int_rate', 'grade', 'sub_grade', 'emp_length',
+        'loan_amnt', 'term', 'int_rate',
         'home_ownership', 'annual_inc', 'verification_status', 'purpose',
         'addr_state', 'dti', 'inq_last_6mths', 'mths_since_last_delinq',
         'open_acc', 'revol_bal', 'total_acc', 'initial_list_status',
