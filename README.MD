@@ -9,7 +9,9 @@ LGD (Loss Given Default)
 Armazenamento de dados:
 
 Banco de dados relacional Postgress
+
 Bucket S3 (utilizando MinIO) para armazenamento de arquivos
+
 Integração com ferramentas de BI:
 Os dados armazenados podem ser utilizados posteriormente em ferramentas de Business Intelligence para fornecer análises detalhadas.
 
