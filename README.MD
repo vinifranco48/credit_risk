@@ -1,7 +1,6 @@
 ## Credit Risk 
-A ideia é criar um ambiente para análise de inadimplência utilizando modelos de machine learning e técnicas de análise de dados. O projeto conta com os seguintes componentes:
-
-Modelos preditivos:
+A ideia é criar um ambiente para análise de inadimplência utilizando modelos de machine learning e técnicas de análise de dadosÇ
+Modelos:
 
 PD (Probability of Default)
 EAD (Exposure at Default)
