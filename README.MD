@@ -1,5 +1,5 @@
 ## Credit Risk 
-A ideia é criar um ambiente para análise de inadimplência utilizando modelos de machine learning e técnicas de análise de dadosÇ
+A ideia é criar um ambiente para análise de inadimplência utilizando modelos de machine learning e técnicas de análise de dados
 Modelos:
 
 PD (Probability of Default)
