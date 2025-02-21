@@ -98,7 +98,14 @@ services:
       - AWS_ACCESS_KEY_ID=mlflow
       - AWS_SECRET_ACCESS_KEY=password
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
-      - PYTHONPATH=/app:/app/..  # Adiciona o diretório raiz ao PYTHONPATH
+      - PYTHONPATH=/app:/app/..
+      - POSTGRES_HOST=pgsql
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=mlflow
+      - POSTGRES_USER=mlflow
+      - POSTGRES_PASSWORD=secret
+    depends_on:
+      - pgsql
 
 networks:
   Dockerfile.mlflow:

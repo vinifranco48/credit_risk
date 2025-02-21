@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str = 'password'
     MLFLOW_S3_ENDPOINT_URL: str = 'http://localhost:9005'
     MLFLOW_TRACKING_URI: str = 'http://localhost:5001'
-    MODEL_RUN_ID: str = "b7055b4cb63b4efcb8313f56d0054e67"
+    MODEL_RUN_ID: str = "78cfda90cdfa4811add1af83a4219400"
     PIPELINE_PATH: str = "artifact/pipeline.pkl"
     SCORECARD_PATH: str = "artifact/scorecard.csv"
 

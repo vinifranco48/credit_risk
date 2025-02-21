@@ -5,6 +5,7 @@ import psycopg2
 from psycopg2.extras import Json
 from typing import Dict, Any, List
 from datetime import datetime, timedelta
+import os
 
 class MinioToPostgres:
     def __init__(self):
@@ -19,7 +20,11 @@ class MinioToPostgres:
             
             # Configuração PostgreSQL
             db_params = {
-                
+                'host': os.getenv('POSTGRES_HOST', 'pgsql'),
+                'port': os.getenv('POSTGRES_PORT', '5432'),
+                'database': os.getenv('POSTGRES_DB', 'mlflow'),
+                'user': os.getenv('POSTGRES_USER', 'mlflow'),
+                'password': os.getenv('POSTGRES_PASSWORD', 'secret')
             }
             
             print(f"Tentando conectar ao PostgreSQL com params: {db_params}")

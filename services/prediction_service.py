@@ -14,11 +14,10 @@ logger = logging.getLogger(__name__)
 
 class PredictionService:
     FEATURE_ORDER = [
-        'loan_amnt', 'term', 'int_rate',
-        'home_ownership', 'annual_inc', 'verification_status', 'purpose',
-        'addr_state', 'dti', 'inq_last_6mths', 'mths_since_last_delinq',
-        'open_acc', 'revol_bal', 'total_acc', 'initial_list_status',
-        'tot_cur_bal', 'mths_since_earliest_cr_line'
+        'loan_amnt', 'term', 'int_rate', 'grade', 'sub_grade', 'emp_length',
+        'home_ownership', 'annual_inc', 'verification_status', 'purpose', 'addr_state',
+        'dti', 'inq_last_6mths', 'mths_since_last_delinq', 'open_acc', 'revol_bal',
+        'total_acc', 'initial_list_status', 'tot_cur_bal', 'mths_since_earliest_cr_line'
     ]
 
 
@@ -47,6 +46,28 @@ class PredictionService:
             migrator = MinioToPostgres() 
             migrator.create_tables()
             print("Iniciando processo de predição...")
+            
+            # Add default values for missing required features
+            features['grade'] = 'C'  # Using 'C' as a middle-ground default grade
+            features['sub_grade'] = 'C3'  # Using 'C3' as a middle sub-grade
+            features['emp_length'] = '5 years'  # Using '5 years' as a middle value for employment length
+            
+            # Handle optional features with default values
+            if 'mths_since_earliest_cr_line' not in features:
+                features['mths_since_earliest_cr_line'] = 60.0  # Default to 5 years of credit history
+            elif features['mths_since_earliest_cr_line'] is None:
+                features['mths_since_earliest_cr_line'] = 60.0  # Handle None values
+                
+            if 'mths_since_last_delinq' not in features:
+                features['mths_since_last_delinq'] = 0.0  # Default to 0 if no delinquency history
+            elif features['mths_since_last_delinq'] is None:
+                features['mths_since_last_delinq'] = 0.0  # Handle None values
+
+            if 'addr_state' not in features:
+                features['addr_state'] = 'CA'  # Default to California if state is missing
+            elif features['addr_state'] is None:
+                features['addr_state'] = 'CA'  # Handle None values
+            
             input_df = pd.DataFrame([features])
             input_df = PredictionService.reorder_features(input_df)
 
