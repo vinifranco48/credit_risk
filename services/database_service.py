@@ -19,21 +19,12 @@ class MinioToPostgres:
             )
             
             # Configuração PostgreSQL
-            db_params = {
-                'host': os.getenv('POSTGRES_HOST', 'pgsql'),
-                'port': os.getenv('POSTGRES_PORT', '5432'),
-                'database': os.getenv('POSTGRES_DB', 'mlflow'),
-                'user': os.getenv('POSTGRES_USER', 'mlflow'),
-                'password': os.getenv('POSTGRES_PASSWORD', 'secret')
-            }
-            
-            print(f"Tentando conectar ao PostgreSQL com params: {db_params}")
-            
-            self.pg_conn = psycopg2.connect(**db_params)
-            self.pg_cursor = self.pg_conn.cursor()
+            database_url = os.getenv('DATABASE_URL', "postgresql://postgres:bem10048@db.pyksouponfmybmntiaju.supabase.co:5432/postgres")
+            self.conn = psycopg2.connect(database_url)
+            self.cursor = self.conn.cursor()
             
             # Teste de conexão
-            self.pg_cursor.execute('SELECT 1')
+            self.cursor.execute('SELECT 1')
             print("Conexão com PostgreSQL estabelecida com sucesso!")
             
         except Exception as e:
@@ -59,14 +50,14 @@ class MinioToPostgres:
                     %(tot_cur_bal)s, %(mths_since_earliest_cr_line)s
                 ) RETURNING id;
             """
-            self.pg_cursor.execute(sql, feature_data)
-            feature_id = self.pg_cursor.fetchone()[0]
-            self.pg_conn.commit()
+            self.cursor.execute(sql, feature_data)
+            feature_id = self.cursor.fetchone()[0]
+            self.conn.commit()
             print(f"Feature inserida com sucesso! ID: {feature_id}")
             return feature_id
         except Exception as e:
             print(f"Erro ao inserir feature: {e}")
-            self.pg_conn.rollback()
+            self.conn.rollback()
             raise
 
     def insert_prediction(self, pred_data: Dict[str, Any]):
@@ -87,20 +78,20 @@ class MinioToPostgres:
             if isinstance(pred_data['prediction_timestamp'], str):
                 pred_data['prediction_timestamp'] = datetime.fromisoformat(pred_data['prediction_timestamp'])
             
-            self.pg_cursor.execute(sql, pred_data)
-            self.pg_conn.commit()
+            self.cursor.execute(sql, pred_data)
+            self.conn.commit()
             print("Predição inserida com sucesso!")
         
             
         except Exception as e:
             print(f"Erro ao inserir predição: {e}")
-            self.pg_conn.rollback()
+            self.conn.rollback()
             raise
     def create_tables(self):
         """Cria as tabelas necessárias no PostgreSQL se elas não existirem"""
         try:
             # Criação da tabela loan_features
-            self.pg_cursor.execute("""
+            self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS loan_features (
                     id SERIAL PRIMARY KEY,
                     loan_amnt FLOAT,
@@ -127,7 +118,7 @@ class MinioToPostgres:
             """)
 
             # Criação da tabela loan_predictions
-            self.pg_cursor.execute("""
+            self.cursor.execute("""
                 CREATE TABLE IF NOT EXISTS loan_predictions (
                     id SERIAL PRIMARY KEY,
                     prediction INTEGER,
@@ -139,12 +130,12 @@ class MinioToPostgres:
                 )
             """)
 
-            self.pg_conn.commit()
+            self.conn.commit()
             print("Tabelas criadas com sucesso!")
             
         except Exception as e:
             print(f"Erro ao criar tabelas: {e}")
-            self.pg_conn.rollback()
+            self.conn.rollback()
             raise
 if __name__ == "__main__":
     migrator = MinioToPostgres()

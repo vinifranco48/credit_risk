@@ -12,12 +12,41 @@ services:
       - '..:/app'  # Volta um diretório para acessar a raiz do projeto
     networks:
       - Dockerfile.mlflow
+      - default
     environment:
       - PYTHONUNBUFFERED=1
       - AWS_ACCESS_KEY_ID=mlflow
       - AWS_SECRET_ACCESS_KEY=password
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
       - PYTHONPATH=/app:/app/..  # Adiciona o diretório raiz ao PYTHONPATH
+      - DATABASE_URL=postgresql://postgres:bem10048@db.pyksouponfmybmntiaju.supabase.co:5432/postgres
+
+  api_model:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: api_model
+    ports:
+      - '8001:8000'
+    volumes:
+      - '..:/app'
+    networks:
+      - Dockerfile.mlflow
+      - default
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AWS_ACCESS_KEY_ID=mlflow
+      - AWS_SECRET_ACCESS_KEY=password
+      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
+      - PYTHONPATH=/app:/app/..
+      - POSTGRES_HOST=pgsql
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=mlflow
+      - POSTGRES_USER=mlflow
+      - POSTGRES_PASSWORD=secret
+      - DATABASE_URL=postgresql://postgres:bem10048@db.pyksouponfmybmntiaju.supabase.co:5432/postgres
+    depends_on:
+      - pgsql
 
   mlflow-web:
     build:
@@ -31,6 +60,7 @@ services:
       - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
     networks:
       - Dockerfile.mlflow
+      - default
     entrypoint: mlflow server --backend-store-uri postgresql+psycopg2://mlflow:secret@pgsql/mlflow --default-artifact-root s3://mlflow/ --host 0.0.0.0 --port 5000
     depends_on:
       - pgsql
@@ -60,16 +90,14 @@ services:
 
   pgsql:
     image: 'postgres:14'
-    ports:
-      - '5434:5432'
     environment:
       POSTGRES_DB: 'mlflow'
       POSTGRES_USER: 'mlflow'
       POSTGRES_PASSWORD: 'secret'
-    volumes:
-      - 'mlflow-pgsql:/var/lib/postgresql/data'
     networks:
       - Dockerfile.mlflow
+    volumes:
+      - 'mlflow-pgsql:/var/lib/postgresql/data'
     healthcheck:
       test:
         - CMD
@@ -82,33 +110,10 @@ services:
       retries: 3
       timeout: 5s
 
-  api_model:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    container_name: api_model
-    ports:
-      - '8001:8000'
-    volumes:
-      - '..:/app'
-    networks:
-      - Dockerfile.mlflow
-    environment:
-      - PYTHONUNBUFFERED=1
-      - AWS_ACCESS_KEY_ID=mlflow
-      - AWS_SECRET_ACCESS_KEY=password
-      - MLFLOW_S3_ENDPOINT_URL=http://minio:9000
-      - PYTHONPATH=/app:/app/..
-      - POSTGRES_HOST=pgsql
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=mlflow
-      - POSTGRES_USER=mlflow
-      - POSTGRES_PASSWORD=secret
-    depends_on:
-      - pgsql
-
 networks:
   Dockerfile.mlflow:
+    driver: bridge
+  default:
     driver: bridge
 
 volumes:
