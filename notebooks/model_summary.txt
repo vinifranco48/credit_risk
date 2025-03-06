@@ -1,0 +1,54 @@
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                      y   R-squared:                       0.047
+Model:                            OLS   Adj. R-squared:                  0.046
+Method:                 Least Squares   F-statistic:                     35.45
+Date:                Sat, 01 Mar 2025   Prob (F-statistic):          3.12e-199
+Time:                        19:13:16   Log-Likelihood:                 20451.
+No. Observations:               21597   AIC:                        -4.084e+04
+Df Residuals:                   21566   BIC:                        -4.059e+04
+Df Model:                          30                                         
+Covariance Type:            nonrobust                                         
+=======================================================================================================
+                                          coef    std err          t      P>|t|      [0.025      0.975]
+-------------------------------------------------------------------------------------------------------
+const                                   0.1058      0.003     40.297      0.000       0.101       0.111
+loan_amnt                              -0.0022      0.001     -2.499      0.012      -0.004      -0.000
+int_rate                                0.0269      0.002     12.639      0.000       0.023       0.031
+emp_length                              0.0010      0.001      1.479      0.139      -0.000       0.002
+annual_inc                              0.0029      0.001      3.552      0.000       0.001       0.005
+dti                                     0.0024      0.001      3.169      0.002       0.001       0.004
+inq_last_6mths                         -0.0008      0.001     -1.236      0.216      -0.002       0.000
+mths_since_last_delinq                 -0.0005      0.001     -0.739      0.460      -0.002       0.001
+open_acc                               -0.0051      0.001     -5.581      0.000      -0.007      -0.003
+revol_bal                              -0.0008      0.001     -1.085      0.278      -0.002       0.001
+total_acc                               0.0064      0.001      6.605      0.000       0.005       0.008
+tot_cur_bal                             0.0055      0.001      6.967      0.000       0.004       0.007
+mths_since_earliest_cr_line             0.0024      0.001      3.387      0.001       0.001       0.004
+term_60                                 0.0053      0.002      3.092      0.002       0.002       0.009
+region_Northeast                       -0.0136      0.002     -6.200      0.000      -0.018      -0.009
+region_South                           -0.0082      0.002     -4.123      0.000      -0.012      -0.004
+region_West                            -0.0124      0.002     -5.962      0.000      -0.017      -0.008
+home_ownership_OWN                      0.0067      0.002      2.709      0.007       0.002       0.011
+home_ownership_RENT_NONE_OTHER          0.0006      0.002      0.367      0.714      -0.003       0.004
+purpose_debt_consolidation             -0.0017      0.002     -0.929      0.353      -0.005       0.002
+purpose_home_improvement               -0.0058      0.003     -1.770      0.077      -0.012       0.001
+purpose_house_car_medical              -0.0033      0.004     -0.849      0.396      -0.011       0.004
+purpose_major_purchase                 -0.0019      0.005     -0.414      0.679      -0.011       0.007
+purpose_other                          -0.0016      0.003     -0.552      0.581      -0.007       0.004
+purpose_small_business                 -0.0049      0.004     -1.375      0.169      -0.012       0.002
+purpose_vacation_moving_wedding         0.0075      0.004      1.698      0.090      -0.001       0.016
+verification_status_Source Verified     0.0008      0.002      0.443      0.657      -0.003       0.004
+verification_status_Verified            0.0011      0.002      0.640      0.522      -0.002       0.005
+initial_list_status_w                   0.0246      0.002     12.564      0.000       0.021       0.028
+grade                                  -0.0023      0.003     -0.701      0.483      -0.009       0.004
+sub_grade                              -0.0141      0.004     -3.689      0.000      -0.022      -0.007
+==============================================================================
+Omnibus:                    21311.718   Durbin-Watson:                   1.936
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):          1202923.443
+Skew:                           4.873   Prob(JB):                         0.00
+Kurtosis:                      38.239   Cond. No.                         16.9
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.

@@ -6,9 +6,13 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str = 'password'
     MLFLOW_S3_ENDPOINT_URL: str = 'http://localhost:9005'
     MLFLOW_TRACKING_URI: str = 'http://localhost:5001'
-    MODEL_RUN_ID: str = "78cfda90cdfa4811add1af83a4219400"
+    MODEL_PD: str = "6a95bc29784b47dea6a1c6666f4e99d9"
+    MODEL_LGD_LINEAR: str = "c9b1ba14a6844f51aa322d9ed2e1f0ee"
+    MODEL_LGD_LOGISTIC: str = "99e0f3c0b1c54b1695bde3276ee58540"
+    MODEL_EAD: str = "04c3e66bfa71494ba0148b7c93e3f9b0"
     PIPELINE_PATH: str = "artifact/pipeline.pkl"
     SCORECARD_PATH: str = "artifact/scorecard.csv"
+    PIPELINE_EAD_LGD: str = "artifact/preprocessor_pipeline.pkl"
 
     # Database settings - usando os mesmos nomes que aparecem no erro
     db_name: str = 'mlflow'

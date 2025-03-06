@@ -89,7 +89,7 @@ with st.form("prediction_form"):
         initial_list_status = st.selectbox("Initial List Status", ["w", "f"], help="Select the initial list status of the loan.")
         tot_cur_bal = st.number_input("Total Current Balance", min_value=0.0, value=50000.0, help="Enter the total current balance of all accounts.")
         mths_since_earliest_cr_line = st.number_input("Months Since Earliest Credit Line", min_value=0.0, value=120.0, help="Enter the number of months since the earliest credit line was opened.")
-
+        emp_length = st.number_input("Emp length", min_value=0, value=1, help="Enter the number of months since the earliest credit line was opened.")
     submitted = st.form_submit_button("🚀 Predict Credit Risk")
 
 # Processamento da previsão
@@ -111,7 +111,8 @@ if submitted:
         "total_acc": total_acc,
         "initial_list_status": initial_list_status,
         "tot_cur_bal": tot_cur_bal,
-        "mths_since_earliest_cr_line": mths_since_earliest_cr_line
+        "mths_since_earliest_cr_line": mths_since_earliest_cr_line,
+        "emp_length": emp_length
     }
 
     try:

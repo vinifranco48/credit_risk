@@ -19,7 +19,7 @@ class MinioToPostgres:
             )
             
             # Configuração PostgreSQL
-            database_url = os.getenv('DATABASE_URL', "postgresql://postgres:bem10048@db.pyksouponfmybmntiaju.supabase.co:5432/postgres")
+            database_url = os.getenv('DATABASE_URL', "postgresql://mlflow:secret@pgsql:5432/mlflow")
             self.conn = psycopg2.connect(database_url)
             self.cursor = self.conn.cursor()
             

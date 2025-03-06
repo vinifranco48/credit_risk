@@ -19,6 +19,7 @@ class CreditFeatures(BaseModel):
     initial_list_status: str = Field(..., description="Initial list status")
     tot_cur_bal: float = Field(..., description="Total current balance")
     mths_since_earliest_cr_line: float = Field(..., description="Months since earliest credit line")
+    emp_length: int = Field(..., description="Employment length")
 
 class PredictionResponse(BaseModel):
     prediction: int = Field(..., description="Binary prediction (0 or 1)")
